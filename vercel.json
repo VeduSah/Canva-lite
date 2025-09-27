@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/canvas/:id", "destination": "/canvas/[id]" }]
+}

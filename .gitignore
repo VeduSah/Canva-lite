@@ -15,6 +15,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Vercel
+.vercel
+
 # IDE files
 .vscode/
 .idea/

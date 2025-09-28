@@ -25,30 +25,42 @@ const CanvasPage = () => {
 
   const onReady = useCallback((canvasInstance) => {
     setCanvas(canvasInstance);
-    loadCanvas(canvasInstance);
+    
+    // Load saved data
+    loadScene(id).then(sceneData => {
+      if (sceneData) {
+        console.log('Found saved data, loading...');
+        canvasInstance.loadFromJSON(JSON.parse(sceneData), () => {
+          canvasInstance.renderAll();
+        });
+      } else {
+        console.log('No saved data found for ID:', id);
+      }
+    }).catch(error => {
+      console.warn('Failed to load scene:', error.message);
+    });
 
-    canvasInstance.on("object:added", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("object:modified", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("object:removed", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("path:created", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("object:moving", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("object:scaling", () => saveCanvasState(canvasInstance));
-    canvasInstance.on("object:rotating", () => saveCanvasState(canvasInstance));
+    canvasInstance.on("object:added", () => {
+      const json = JSON.stringify(canvasInstance.toJSON());
+      setCanvasData(json);
+    });
+    canvasInstance.on("object:modified", () => {
+      const json = JSON.stringify(canvasInstance.toJSON());
+      setCanvasData(json);
+    });
+    canvasInstance.on("object:removed", () => {
+      const json = JSON.stringify(canvasInstance.toJSON());
+      setCanvasData(json);
+    });
+    canvasInstance.on("path:created", () => {
+      const json = JSON.stringify(canvasInstance.toJSON());
+      setCanvasData(json);
+    });
 
     canvasInstance.on("selection:created", (e) => setSelectedObject(e.selected[0]));
     canvasInstance.on("selection:updated", (e) => setSelectedObject(e.selected[0]));
     canvasInstance.on("selection:cleared", () => setSelectedObject(null));
-  }, [id]); // Add id as dependency
-
-  const saveCanvasState = useCallback((canvasInstance) => {
-    if (isUndoRedo.current) return;
-    const json = JSON.stringify(canvasInstance.toJSON());
-    canvasState.current = json;
-    setCanvasData(json);
-    saveState(json);
-    setCanUndo(pointer.current > 0);
-    setCanRedo(false);
-  }, [saveState, pointer]);
+  }, [id, loadScene]);
 
   useDebounce(
     () => {
@@ -60,25 +72,6 @@ const CanvasPage = () => {
     1000,
     [canvasData, id]
   );
-
-  const loadCanvas = useCallback(async (canvasInstance) => {
-    try {
-      console.log('Loading canvas data for ID:', id);
-      const sceneData = await loadScene(id);
-      if (sceneData) {
-        console.log('Found saved data, loading...');
-        canvasInstance.loadFromJSON(JSON.parse(sceneData), () => {
-          canvasInstance.renderAll();
-          saveCanvasState(canvasInstance);
-        });
-      } else {
-        console.log('No saved data found for ID:', id);
-      }
-    } catch (error) {
-      console.warn('Failed to load scene:', error.message);
-      // Continue with empty canvas if loading fails
-    }
-  }, [id, loadScene, saveCanvasState]);
 
   const addRectangle = () => {
     if (canvas.isDrawingMode) {
@@ -126,7 +119,8 @@ const CanvasPage = () => {
     const activeObject = canvas.getActiveObject();
     if (activeObject) {
       canvas.remove(activeObject);
-      saveCanvasState(canvas);
+      const json = JSON.stringify(canvas.toJSON());
+      setCanvasData(json);
     }
   };
 
@@ -141,7 +135,8 @@ const CanvasPage = () => {
     if (selectedObject) {
       selectedObject.set("fill", color);
       canvas.renderAll();
-      saveCanvasState(canvas);
+      const json = JSON.stringify(canvas.toJSON());
+      setCanvasData(json);
     }
   };
 

@@ -19,6 +19,7 @@ const CanvasPage = () => {
   const [selectedObject, setSelectedObject] = useState(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [canvasData, setCanvasData] = useState(null);
   const canvasState = useRef(null);
   const isUndoRedo = useRef(false);
 
@@ -28,7 +29,11 @@ const CanvasPage = () => {
 
     canvasInstance.on("object:added", () => saveCanvasState(canvasInstance));
     canvasInstance.on("object:modified", () => saveCanvasState(canvasInstance));
+    canvasInstance.on("object:removed", () => saveCanvasState(canvasInstance));
     canvasInstance.on("path:created", () => saveCanvasState(canvasInstance));
+    canvasInstance.on("object:moving", () => saveCanvasState(canvasInstance));
+    canvasInstance.on("object:scaling", () => saveCanvasState(canvasInstance));
+    canvasInstance.on("object:rotating", () => saveCanvasState(canvasInstance));
 
     canvasInstance.on("selection:created", (e) => setSelectedObject(e.selected[0]));
     canvasInstance.on("selection:updated", (e) => setSelectedObject(e.selected[0]));
@@ -39,6 +44,7 @@ const CanvasPage = () => {
     if (isUndoRedo.current) return;
     const json = JSON.stringify(canvasInstance.toJSON());
     canvasState.current = json;
+    setCanvasData(json);
     saveState(json);
     setCanUndo(pointer.current > 0);
     setCanRedo(false);
@@ -46,12 +52,12 @@ const CanvasPage = () => {
 
   useDebounce(
     () => {
-      if (canvasState.current) {
-        saveScene(id, canvasState.current);
+      if (canvasData) {
+        saveScene(id, canvasData);
       }
     },
     1000,
-    [id, canvasState.current]
+    [canvasData, id]
   );
 
   const loadCanvas = useCallback(async (canvasInstance) => {

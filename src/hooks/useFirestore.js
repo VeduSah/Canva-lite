@@ -17,7 +17,8 @@ const useFirestore = () => {
       return snap.exists() ? snap.data().data : null;
     } catch (error) {
       console.warn('Failed to load scene, using localStorage:', error.message);
-      return localStorage.getItem(`scene_${id}`);
+      const localData = localStorage.getItem(`scene_${id}`);
+      return localData;
     }
   };
 

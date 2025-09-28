@@ -30,9 +30,18 @@ const CanvasPage = () => {
     canvasInstance.on("object:modified", () => saveCanvasState(canvasInstance));
     canvasInstance.on("path:created", () => saveCanvasState(canvasInstance));
 
-    canvasInstance.on("selection:created", (e) => setSelectedObject(e.selected[0]));
-    canvasInstance.on("selection:updated", (e) => setSelectedObject(e.selected[0]));
-    canvasInstance.on("selection:cleared", () => setSelectedObject(null));
+    canvasInstance.on("selection:created", (e) => {
+      setSelectedObject(e.selected[0]);
+      instantSave(canvasInstance);
+    });
+    canvasInstance.on("selection:updated", (e) => {
+      setSelectedObject(e.selected[0]);
+      instantSave(canvasInstance);
+    });
+    canvasInstance.on("selection:cleared", () => {
+      setSelectedObject(null);
+      instantSave(canvasInstance);
+    });
   }, [id]); // Add id as dependency
 
   const saveCanvasState = useCallback((canvasInstance) => {
@@ -43,6 +52,13 @@ const CanvasPage = () => {
     setCanUndo(pointer.current > 0);
     setCanRedo(false);
   }, [saveState, pointer]);
+
+  const instantSave = useCallback((canvasInstance) => {
+    if (isUndoRedo.current) return;
+    const json = JSON.stringify(canvasInstance.toJSON());
+    canvasState.current = json;
+    saveScene(id, json);
+  }, [id, saveScene]);
 
   useDebounce(
     () => {

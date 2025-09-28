@@ -3,41 +3,22 @@ import { db } from "../firebase/firebase";
 
 const useFirestore = () => {
   const saveScene = async (id, data) => {
-    // Use localStorage as primary storage
-    localStorage.setItem(`scene_${id}`, data);
-    console.log('Saved to localStorage, ID:', id);
-    
-    // Try Firebase as backup
     try {
-      await setDoc(doc(db, "scenes", id), { data, updatedAt: new Date() });
-      console.log('Also saved to Firestore');
+      await setDoc(doc(db, "scenes", id), { data });
     } catch (error) {
-      console.warn('Firestore save failed, but localStorage succeeded:', error.message);
+      console.warn('Failed to save scene, using localStorage:', error.message);
+      localStorage.setItem(`scene_${id}`, data);
     }
   };
 
   const loadScene = async (id) => {
-    // Try localStorage first
-    const localData = localStorage.getItem(`scene_${id}`);
-    if (localData) {
-      console.log('Found data in localStorage');
-      return localData;
-    }
-    
-    // Fallback to Firestore
     try {
-      console.log('No localStorage data, trying Firestore');
       const snap = await getDoc(doc(db, "scenes", id));
-      if (snap.exists()) {
-        const data = snap.data().data;
-        localStorage.setItem(`scene_${id}`, data); // Cache locally
-        return data;
-      }
+      return snap.exists() ? snap.data().data : null;
     } catch (error) {
-      console.warn('Firestore load failed:', error.message);
+      console.warn('Failed to load scene, using localStorage:', error.message);
+      return localStorage.getItem(`scene_${id}`);
     }
-    
-    return null;
   };
 
   return { saveScene, loadScene };

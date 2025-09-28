@@ -20,6 +20,7 @@ const CanvasPage = () => {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const canvasState = useRef(null);
+  const isUndoRedo = useRef(false);
 
   const onReady = useCallback((canvasInstance) => {
     setCanvas(canvasInstance);
@@ -35,11 +36,12 @@ const CanvasPage = () => {
   }, [id]); // Add id as dependency
 
   const saveCanvasState = useCallback((canvasInstance) => {
+    if (isUndoRedo.current) return;
     const json = JSON.stringify(canvasInstance.toJSON());
     canvasState.current = json;
     saveState(json);
     setCanUndo(pointer.current > 0);
-    setCanRedo(false); // No redo available after new action
+    setCanRedo(false);
   }, [saveState, pointer]);
 
   useDebounce(
@@ -68,6 +70,10 @@ const CanvasPage = () => {
   }, [id, loadScene]);
 
   const addRectangle = () => {
+    if (canvas.isDrawingMode) {
+      canvas.isDrawingMode = false;
+      setIsPenActive(false);
+    }
     const rect = new fabric.Rect({
       left: 100,
       top: 100,
@@ -79,6 +85,10 @@ const CanvasPage = () => {
   };
 
   const addCircle = () => {
+    if (canvas.isDrawingMode) {
+      canvas.isDrawingMode = false;
+      setIsPenActive(false);
+    }
     const circle = new fabric.Circle({
       left: 150,
       top: 150,
@@ -89,6 +99,10 @@ const CanvasPage = () => {
   };
 
   const addText = () => {
+    if (canvas.isDrawingMode) {
+      canvas.isDrawingMode = false;
+      setIsPenActive(false);
+    }
     const text = new fabric.IText("Hello, World!", {
       left: 200,
       top: 200,
@@ -123,23 +137,27 @@ const CanvasPage = () => {
   const handleUndo = () => {
     const prevState = undo();
     if (prevState) {
+      isUndoRedo.current = true;
       canvas.loadFromJSON(JSON.parse(prevState), () => {
         canvas.renderAll();
+        isUndoRedo.current = false;
+        setCanUndo(pointer.current > 0);
+        setCanRedo(pointer.current < history.current.length - 1);
       });
     }
-    setCanUndo(pointer.current > 0);
-    setCanRedo(pointer.current < history.current.length - 1);
   };
 
   const handleRedo = () => {
     const nextState = redo();
     if (nextState) {
+      isUndoRedo.current = true;
       canvas.loadFromJSON(JSON.parse(nextState), () => {
         canvas.renderAll();
+        isUndoRedo.current = false;
+        setCanRedo(pointer.current < history.current.length - 1);
+        setCanUndo(pointer.current > 0);
       });
     }
-    setCanRedo(pointer.current < history.current.length - 1);
-    setCanUndo(pointer.current > 0);
   };
 
   const exportCanvas = () => {

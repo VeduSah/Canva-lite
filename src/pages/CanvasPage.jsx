@@ -53,6 +53,7 @@ const CanvasPage = () => {
   useDebounce(
     () => {
       if (canvasData) {
+        console.log('Auto-saving canvas data for ID:', id);
         saveScene(id, canvasData);
       }
     },
@@ -62,18 +63,22 @@ const CanvasPage = () => {
 
   const loadCanvas = useCallback(async (canvasInstance) => {
     try {
+      console.log('Loading canvas data for ID:', id);
       const sceneData = await loadScene(id);
       if (sceneData) {
+        console.log('Found saved data, loading...');
         canvasInstance.loadFromJSON(JSON.parse(sceneData), () => {
           canvasInstance.renderAll();
           saveCanvasState(canvasInstance);
         });
+      } else {
+        console.log('No saved data found for ID:', id);
       }
     } catch (error) {
       console.warn('Failed to load scene:', error.message);
       // Continue with empty canvas if loading fails
     }
-  }, [id, loadScene]);
+  }, [id, loadScene, saveCanvasState]);
 
   const addRectangle = () => {
     if (canvas.isDrawingMode) {
